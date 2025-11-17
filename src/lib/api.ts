@@ -10,24 +10,31 @@ async function apiRequest<T>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    credentials: 'include', // Include cookies for HTTP-only JWT tokens
     ...options,
   };
 
-  // Add auth token if available
+  // Add auth token if available (fallback for non-HTTP-only tokens)
   const token = localStorage.getItem('auth_token');
   if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
+    const headers = new Headers(config.headers);
+    if (!headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+      config.headers = headers;
+    }
   }
 
   const response = await fetch(url, config);
 
   if (!response.ok) {
     if (response.status === 401) {
+      // Clear any stored tokens
       localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+      localStorage.removeItem('refresh_token');
+      // Redirect to login if not already there
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     const error = await response.json().catch(() => ({ message: `API Error: ${response.status}` }));
     throw new Error(error.message || `API Error: ${response.status}`);

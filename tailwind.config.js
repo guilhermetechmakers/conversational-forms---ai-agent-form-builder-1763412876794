@@ -56,6 +56,7 @@ export default {
         'slide-in-right': 'slideInRight 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'bounce-in': 'bounceIn 0.6s ease-out',
+        'caret-blink': 'caretBlink 1.25s ease-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -87,6 +88,10 @@ export default {
           '50%': { opacity: '1', transform: 'scale(1.05)' },
           '70%': { transform: 'scale(0.9)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        caretBlink: {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' },
         },
       },
     },
