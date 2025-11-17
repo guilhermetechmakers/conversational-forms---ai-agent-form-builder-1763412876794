@@ -93,3 +93,64 @@ export interface SessionWithDetails extends Session {
   assignee_name?: string;
   lead_score?: number;
 }
+
+// Search and Filter Types
+export interface SessionSearchParams {
+  query?: string;
+  agent_id?: string;
+  status?: SessionStatus | SessionStatus[];
+  date_from?: string;
+  date_to?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  page?: number;
+  limit?: number;
+  sort_by?: 'created_at' | 'updated_at' | 'completed_at';
+  sort_order?: 'asc' | 'desc';
+}
+
+export interface SessionSearchResponse {
+  sessions: SessionWithDetails[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+// Export Types
+export interface ExportConfig {
+  format: 'csv' | 'json';
+  session_ids: string[];
+  include_transcript?: boolean;
+  include_metadata?: boolean;
+  scheduled?: boolean;
+  scheduled_time?: string;
+  frequency?: 'once' | 'daily' | 'weekly' | 'monthly';
+}
+
+export interface ExportLog {
+  id: string;
+  export_id: string;
+  session_id?: string;
+  format: 'csv' | 'json';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  scheduled_time?: string;
+  completed_at?: string;
+  file_url?: string;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface ScheduledExport {
+  id: string;
+  name: string;
+  format: 'csv' | 'json';
+  filters: SessionSearchParams;
+  frequency: 'once' | 'daily' | 'weekly' | 'monthly';
+  next_run_at: string;
+  last_run_at?: string;
+  status: 'active' | 'paused' | 'completed';
+  created_at: string;
+  updated_at: string;
+}

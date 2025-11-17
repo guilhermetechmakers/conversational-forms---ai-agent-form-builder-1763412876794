@@ -27,6 +27,7 @@ import { KnowledgeAttachmentsPage } from "@/pages/KnowledgeAttachmentsPage";
 import { WebhooksPage } from "@/pages/WebhooksPage";
 import { NotificationCenterPage } from "@/pages/NotificationCenterPage";
 import { SecurityPrivacyCompliancePage } from "@/pages/SecurityPrivacyCompliancePage";
+import { SessionsPage } from "@/pages/SessionsPage";
 
 // React Query client with optimal defaults
 const queryClient = new QueryClient({
@@ -99,6 +100,14 @@ export default function App() {
                 }
               />
               <Route path="/a/:workspace/:slug" element={<AgentChatPage />} />
+              <Route
+                path="/sessions"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <SessionsPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/sessions/:id"
                 element={

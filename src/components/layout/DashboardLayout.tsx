@@ -26,6 +26,7 @@ import {
   Plus,
   Menu,
   X,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -46,6 +47,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/agents", label: "Agents", icon: MessageSquare },
+    { path: "/sessions", label: "Sessions", icon: Database },
     { path: "/knowledge", label: "Knowledge", icon: BookOpen },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
     { path: "/webhooks", label: "Webhooks", icon: Webhook },
