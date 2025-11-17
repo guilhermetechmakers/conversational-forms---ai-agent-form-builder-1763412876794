@@ -1,34 +1,73 @@
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, MessageSquare, Users, TrendingUp, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Plus, MessageSquare } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { AgentCard } from "@/components/dashboard/AgentCard";
+import { SessionsSummaryWidgets } from "@/components/dashboard/SessionsSummaryWidgets";
+import { RecentSessionsTable } from "@/components/dashboard/RecentSessionsTable";
+import { DashboardFooter } from "@/components/dashboard/DashboardFooter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Agent } from "@/types/agent";
-import type { Session } from "@/types/session";
+import { toast } from "sonner";
 
 export function DashboardPage() {
-  // Mock data - replace with actual API calls
-  const { data: agents, isLoading: agentsLoading } = useQuery({
-    queryKey: ['agents'],
-    queryFn: () => api.get<Agent[]>('/agents'),
-    initialData: [],
+  const queryClient = useQueryClient();
+  const {
+    agents,
+    recentSessions,
+    metrics,
+    usage,
+    currentPlan,
+    agentSessionsCount,
+    isLoading,
+  } = useDashboardData();
+
+  const cloneAgentMutation = useMutation({
+    mutationFn: async (agentId: string) => {
+      return api.post<{ id: string }>(`/agents/${agentId}/clone`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      toast.success("Agent cloned successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to clone agent");
+    },
   });
 
-  const { data: sessions, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['sessions', 'recent'],
-    queryFn: () => api.get<Session[]>('/sessions?limit=5'),
-    initialData: [],
+  const disableAgentMutation = useMutation({
+    mutationFn: async (agentId: string) => {
+      return api.patch(`/agents/${agentId}`, { status: "archived" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      toast.success("Agent disabled");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to disable agent");
+    },
   });
 
-  const stats = {
-    totalAgents: agents?.length || 0,
-    totalSessions: 1247,
-    activeSessions: 23,
-    completionRate: 78,
+  const handleClone = (agentId: string) => {
+    cloneAgentMutation.mutate(agentId);
+  };
+
+  const handleDisable = (agentId: string) => {
+    if (confirm("Are you sure you want to disable this agent?")) {
+      disableAgentMutation.mutate(agentId);
+    }
+  };
+
+  const handleExport = (sessionId: string, format: "csv" | "json") => {
+    // TODO: Implement export functionality
+    console.log(`Exporting session ${sessionId} as ${format}`);
+  };
+
+  const handleResendWebhook = (sessionId: string) => {
+    // TODO: Implement webhook resend functionality
+    console.log(`Resending webhook for session ${sessionId}`);
   };
 
   return (
@@ -37,70 +76,21 @@ export function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-semibold">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
-              Overview of your conversational forms
+              Overview of your conversational forms and sessions
             </p>
           </div>
-          <Link to="/agents/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Agent
-            </Button>
-          </Link>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAgents}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.totalAgents > 0 ? `${stats.totalAgents} active` : "No agents yet"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSessions}</div>
-              <p className="text-xs text-muted-foreground">
-                All time
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeSessions}</div>
-              <p className="text-xs text-muted-foreground">
-                In progress now
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completionRate}%</div>
-              <p className="text-xs text-muted-foreground">
-                Last 30 days
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Sessions Summary Widgets */}
+        <SessionsSummaryWidgets
+          totalSessions={metrics.totalSessions}
+          completedSessions={metrics.completedSessions}
+          conversionRate={metrics.conversionRate}
+          trendingSources={metrics.trendingSources}
+          isLoading={isLoading}
+        />
 
         {/* Agents List */}
         <Card>
@@ -121,38 +111,22 @@ export function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {agentsLoading ? (
+            {isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-20 w-full" />
+                  <div key={i} className="h-32 w-full rounded-xl border bg-card animate-pulse" />
                 ))}
               </div>
             ) : agents && agents.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {agents.map((agent) => (
-                  <Link key={agent.id} to={`/agents/${agent.id}/edit`}>
-                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{agent.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {agent.slug}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant={agent.status === 'published' ? 'default' : 'secondary'}>
-                          {agent.status}
-                        </Badge>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  </Link>
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    sessionsCount={agentSessionsCount[agent.id] || 0}
+                    onClone={handleClone}
+                    onDisable={handleDisable}
+                  />
                 ))}
               </div>
             ) : (
@@ -173,46 +147,30 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent Sessions */}
+        {/* Recent Sessions Table */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Sessions</CardTitle>
             <CardDescription>
-              Latest form completion sessions
+              Latest form completion sessions with visitor metadata
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {sessionsLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : sessions && sessions.length > 0 ? (
-              <div className="space-y-4">
-                {sessions.map((session) => (
-                  <Link key={session.id} to={`/sessions/${session.id}`}>
-                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div>
-                        <h3 className="font-semibold">Session {session.id.slice(0, 8)}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(session.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
-                        {session.status}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No sessions yet
-              </div>
-            )}
+            <RecentSessionsTable
+              sessions={recentSessions}
+              isLoading={isLoading}
+              onExport={handleExport}
+              onResendWebhook={handleResendWebhook}
+            />
           </CardContent>
         </Card>
+
+        {/* Footer with Usage & Billing */}
+        <DashboardFooter
+          currentPlan={currentPlan}
+          usage={usage}
+          isLoading={isLoading}
+        />
       </div>
     </DashboardLayout>
   );
