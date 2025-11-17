@@ -8,7 +8,8 @@ import {
   Settings, 
   LogOut,
   User,
-  HelpCircle
+  HelpCircle,
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/agents", label: "Agents", icon: MessageSquare },
+    { path: "/knowledge", label: "Knowledge", icon: BookOpen },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
     { path: "/help", label: "Help & Docs", icon: HelpCircle },
     { path: "/settings", label: "Settings", icon: Settings },
