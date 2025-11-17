@@ -81,7 +81,7 @@
 
   /* Fade in animation */
   .animate-fade-in-up {
-    animation: fadeInUp 0.5s ease-out;
+    animation: fadeInUp 0.5s ease-out forwards;
   }
 
   @keyframes fadeInUp {
@@ -93,6 +93,34 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Gradient shift animation */
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  /* Animation delays */
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 600ms;
   }
 }
 
