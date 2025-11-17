@@ -196,9 +196,7 @@ export function LandingPage() {
             <div>
               <h3 className="font-semibold mb-4">Legal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/privacy" className="hover:text-foreground">Privacy</Link></li>
-                <li><Link to="/terms" className="hover:text-foreground">Terms</Link></li>
-                <li><Link to="/cookies" className="hover:text-foreground">Cookies</Link></li>
+                <li><Link to="/privacy-terms" className="hover:text-foreground">Privacy & Terms</Link></li>
               </ul>
             </div>
           </div>

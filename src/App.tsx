@@ -17,6 +17,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { BillingPage } from "@/pages/BillingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
+import { PrivacyTermsPage } from "@/pages/PrivacyTermsPage";
 
 // React Query client with optimal defaults
 const queryClient = new QueryClient({
@@ -45,6 +46,10 @@ export default function App() {
             <Route path="/forgot-password" element={<PasswordResetRequestPage />} />
             <Route path="/reset-password" element={<PasswordResetPage />} />
             <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage />} />
+            <Route path="/privacy-terms" element={<PrivacyTermsPage />} />
+            <Route path="/privacy" element={<PrivacyTermsPage />} />
+            <Route path="/terms" element={<PrivacyTermsPage />} />
+            <Route path="/cookies" element={<PrivacyTermsPage />} />
             
             {/* Protected routes */}
             <Route
