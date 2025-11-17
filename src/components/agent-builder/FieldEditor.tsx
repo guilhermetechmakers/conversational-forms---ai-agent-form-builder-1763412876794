@@ -21,6 +21,7 @@ interface FieldEditorProps {
   field: AgentField | null;
   onUpdate: (field: AgentField) => void;
   onDelete?: (fieldId: string) => void;
+  allFields?: AgentField[];
 }
 
 const fieldTypes: { value: FieldType; label: string }[] = [
@@ -35,7 +36,7 @@ const fieldTypes: { value: FieldType; label: string }[] = [
   { value: "file", label: "File Upload" },
 ];
 
-export function FieldEditor({ field, onUpdate, onDelete }: FieldEditorProps) {
+export function FieldEditor({ field, onUpdate, onDelete, allFields = [] }: FieldEditorProps) {
   const {
     register,
     control,
@@ -52,6 +53,10 @@ export function FieldEditor({ field, onUpdate, onDelete }: FieldEditorProps) {
   const fieldType = watch("type");
   const requiresOptions = fieldType === "select" || fieldType === "multi-select";
   const options = watch("validation.options") || [];
+  const conditionalLogic = watch("conditional_logic");
+  
+  // Get available fields for conditional logic (exclude current field)
+  const availableFields = allFields.filter(f => f.id !== field?.id);
 
   useEffect(() => {
     if (field) {
@@ -278,6 +283,96 @@ export function FieldEditor({ field, onUpdate, onDelete }: FieldEditorProps) {
               />
             </div>
           </div>
+
+          {/* Conditional Logic Section */}
+          {availableFields.length > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <Label>Conditional Logic</Label>
+                <Controller
+                  name="conditional_logic"
+                  control={control}
+                  render={({ field: conditionalField }) => (
+                    <Switch
+                      checked={!!conditionalField.value}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          conditionalField.onChange({
+                            field_id: availableFields[0]?.id || "",
+                            operator: "equals",
+                            value: "",
+                          });
+                        } else {
+                          conditionalField.onChange(undefined);
+                        }
+                      }}
+                    />
+                  )}
+                />
+              </div>
+              {conditionalLogic && (
+                <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                  <div className="space-y-2">
+                    <Label htmlFor="conditional-field">Show this field when</Label>
+                    <Controller
+                      name="conditional_logic.field_id"
+                      control={control}
+                      render={({ field: conditionalField }) => (
+                        <Select
+                          value={conditionalField.value}
+                          onValueChange={conditionalField.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableFields.map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="conditional-operator">Operator</Label>
+                    <Controller
+                      name="conditional_logic.operator"
+                      control={control}
+                      render={({ field: conditionalField }) => (
+                        <Select
+                          value={conditionalField.value}
+                          onValueChange={conditionalField.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="equals">Equals</SelectItem>
+                            <SelectItem value="not_equals">Not Equals</SelectItem>
+                            <SelectItem value="contains">Contains</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="conditional-value">Value</Label>
+                    <Input
+                      id="conditional-value"
+                      {...register("conditional_logic.value")}
+                      placeholder="Enter value"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This field will only be shown when the condition is met
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <Button type="submit" className="w-full" size="sm">
             Save Changes

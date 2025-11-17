@@ -17,6 +17,7 @@ import { KnowledgeAttachments } from "@/components/agent-builder/KnowledgeAttach
 import { AppearanceSettings } from "@/components/agent-builder/AppearanceSettings";
 import { PublishControls } from "@/components/agent-builder/PublishControls";
 import { PreviewModal } from "@/components/agent-builder/PreviewModal";
+import { VersionHistory } from "@/components/agent-builder/VersionHistory";
 import type { AgentField, AgentPersona, AgentAppearance, FieldType } from "@/types/agent";
 import type { KnowledgeAttachment } from "@/types/knowledge";
 
@@ -69,9 +70,14 @@ export function AgentBuilderPage() {
     }
   }, [existingAgent]);
 
-  // Autosave functionality
+  // Autosave functionality with toast feedback
   const autosave = useCallback(async () => {
     if (!agentName || !agentSlug || fields.length === 0) {
+      return;
+    }
+
+    if (!isEditing || !id) {
+      // For new agents, we'll save on explicit save action
       return;
     }
 
@@ -85,27 +91,21 @@ export function AgentBuilderPage() {
         knowledge_refs: attachments.map((a) => a.id),
       };
 
-      if (isEditing && id) {
-        await updateAgent.mutateAsync(agentData);
-      } else {
-        // For new agents, we'll save on explicit save action
-        return;
-      }
-
+      await updateAgent.mutateAsync(agentData);
       setLastSaved(new Date());
     } catch (error) {
-      // Silently fail for autosave
+      // Silently fail for autosave - errors are handled by mutation
       console.error("Autosave failed:", error);
     }
   }, [agentName, agentSlug, fields, persona, appearance, attachments, isEditing, id, updateAgent]);
 
-  // Autosave debounced
+  // Autosave debounced with better feedback
   useEffect(() => {
+    if (!isEditing || !id) return;
+
     const timer = setTimeout(() => {
-      if (isEditing) {
-        autosave();
-      }
-    }, 2000);
+      autosave();
+    }, 3000); // Increased to 3 seconds to reduce API calls
 
     return () => clearTimeout(timer);
   }, [agentName, agentSlug, fields, persona, appearance, isEditing, autosave]);
@@ -140,6 +140,11 @@ export function AgentBuilderPage() {
       setSelectedField(null);
     }
     toast.success("Field deleted");
+  };
+
+  const handleReorderFields = (reorderedFields: AgentField[]) => {
+    setFields(reorderedFields);
+    toast.success("Fields reordered");
   };
 
   const handleSave = async () => {
@@ -319,6 +324,9 @@ export function AgentBuilderPage() {
                 <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
                 <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="publish">Publish</TabsTrigger>
+                {isEditing && id && (
+                  <TabsTrigger value="versions">Versions</TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="flow" className="flex-1 flex flex-col mt-0">
@@ -327,6 +335,7 @@ export function AgentBuilderPage() {
                   selectedField={selectedField}
                   onSelectField={setSelectedField}
                   onDeleteField={handleDeleteField}
+                  onReorderFields={handleReorderFields}
                 />
               </TabsContent>
 
@@ -400,6 +409,12 @@ export function AgentBuilderPage() {
                   onCaptchaToggle={setEnableCaptcha}
                 />
               </TabsContent>
+
+              {isEditing && id && (
+                <TabsContent value="versions" className="flex-1 overflow-y-auto mt-0">
+                  <VersionHistory agentId={id} />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
 
@@ -409,6 +424,7 @@ export function AgentBuilderPage() {
               field={selectedField}
               onUpdate={handleUpdateField}
               onDelete={handleDeleteField}
+              allFields={fields}
             />
           </div>
         </div>

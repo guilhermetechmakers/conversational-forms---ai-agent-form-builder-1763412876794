@@ -11,6 +11,7 @@ import { PasswordResetRequestPage } from "@/pages/PasswordResetRequestPage";
 import { PasswordResetPage } from "@/pages/PasswordResetPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { AgentBuilderPage } from "@/pages/AgentBuilderPage";
+import { AgentListPage } from "@/pages/AgentListPage";
 import { AgentChatPage } from "@/pages/AgentChatPage";
 import { SessionViewerPage } from "@/pages/SessionViewerPage";
 import { AnalyticsPage } from "@/pages/AnalyticsPage";
@@ -77,7 +78,7 @@ export default function App() {
                 path="/agents"
                 element={
                   <ProtectedRoute requireEmailVerification>
-                    <DashboardPage />
+                    <AgentListPage />
                   </ProtectedRoute>
                 }
               />

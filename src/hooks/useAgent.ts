@@ -82,3 +82,54 @@ export function useAgents() {
     queryFn: () => api.get<Agent[]>("/agents"),
   });
 }
+
+export function useCloneAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (agentId: string) => api.post<Agent>(`/agents/${agentId}/clone`, {}),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.setQueryData(["agent", data.id], data);
+      toast.success("Agent cloned successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to clone agent");
+    },
+  });
+}
+
+export interface AgentVersion {
+  id: string;
+  agent_id: string;
+  version: number;
+  change_log: string;
+  created_at: string;
+  created_by: string;
+}
+
+export function useAgentVersions(agentId: string) {
+  return useQuery({
+    queryKey: ["agent-versions", agentId],
+    queryFn: () => api.get<AgentVersion[]>(`/agents/${agentId}/versions`),
+    enabled: !!agentId,
+  });
+}
+
+export function useRestoreAgentVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ agentId, versionId }: { agentId: string; versionId: string }) =>
+      api.post<Agent>(`/agents/${agentId}/versions/${versionId}/restore`, {}),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["agent", variables.agentId] });
+      queryClient.invalidateQueries({ queryKey: ["agent-versions", variables.agentId] });
+      toast.success("Version restored successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore version");
+    },
+  });
+}

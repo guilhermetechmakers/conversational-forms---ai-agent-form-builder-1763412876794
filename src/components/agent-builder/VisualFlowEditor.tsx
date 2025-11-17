@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,54 @@ export function VisualFlowEditor({
   selectedField,
   onSelectField,
   onDeleteField,
+  onReorderFields,
 }: VisualFlowEditorProps) {
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, fieldId: string) => {
+    setDraggedFieldId(fieldId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", fieldId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData("text/plain");
+    
+    if (!draggedId || !onReorderFields) return;
+
+    const draggedIndex = fields.findIndex((f) => f.id === draggedId);
+    if (draggedIndex === -1 || draggedIndex === dropIndex) {
+      setDraggedFieldId(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newFields = [...fields];
+    const [removed] = newFields.splice(draggedIndex, 1);
+    newFields.splice(dropIndex, 0, removed);
+    
+    onReorderFields(newFields);
+    setDraggedFieldId(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedFieldId(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardContent className="flex-1 p-0">
@@ -48,18 +96,28 @@ export function VisualFlowEditor({
               fields.map((field, index) => (
                 <div
                   key={field.id}
+                  draggable={!!onReorderFields}
+                  onDragStart={(e) => handleDragStart(e, field.id)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
                   className={cn(
                     "group relative p-4 border rounded-lg transition-all duration-200",
                     "hover:shadow-md hover:border-primary/50",
                     selectedField?.id === field.id
                       ? "border-primary bg-primary/5 shadow-sm"
-                      : "bg-card hover:bg-muted/30"
+                      : "bg-card hover:bg-muted/30",
+                    draggedFieldId === field.id && "opacity-50",
+                    dragOverIndex === index && "border-primary border-2 bg-primary/10"
                   )}
                   onClick={() => onSelectField(field)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
-                      <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {onReorderFields && (
+                        <GripVertical className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity cursor-move" />
+                      )}
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-medium text-muted-foreground">
                         {index + 1}
                       </div>
