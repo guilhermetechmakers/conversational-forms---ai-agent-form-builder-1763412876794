@@ -25,6 +25,7 @@ import { HelpDocsPage } from "@/pages/HelpDocsPage";
 import { KnowledgeAttachmentsPage } from "@/pages/KnowledgeAttachmentsPage";
 import { WebhooksPage } from "@/pages/WebhooksPage";
 import { NotificationCenterPage } from "@/pages/NotificationCenterPage";
+import { SecurityPrivacyCompliancePage } from "@/pages/SecurityPrivacyCompliancePage";
 
 // React Query client with optimal defaults
 const queryClient = new QueryClient({
@@ -174,6 +175,14 @@ export default function App() {
                 element={
                   <ProtectedRoute requireEmailVerification requireAdmin>
                     <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/security"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <SecurityPrivacyCompliancePage />
                   </ProtectedRoute>
                 }
               />

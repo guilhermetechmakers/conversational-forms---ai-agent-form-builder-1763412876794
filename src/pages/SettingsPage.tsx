@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 
 export function SettingsPage() {
@@ -112,6 +113,16 @@ export function SettingsPage() {
                   <Input id="newPassword" type="password" />
                 </div>
                 <Button>Update Password</Button>
+                <Separator />
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    For comprehensive security, privacy, and compliance management including encryption settings, 
+                    audit logs, data export/deletion, and PII management, visit the dedicated Security & Privacy page.
+                  </p>
+                  <Link to="/security">
+                    <Button variant="outline">Go to Security & Privacy</Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

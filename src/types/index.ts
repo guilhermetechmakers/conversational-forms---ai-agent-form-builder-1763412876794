@@ -7,3 +7,4 @@ export * from './knowledge';
 export * from './billing';
 export * from './analytics';
 export * from './notification';
+export * from './security';
