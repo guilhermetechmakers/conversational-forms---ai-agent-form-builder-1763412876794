@@ -15,6 +15,7 @@ import { AgentChatPage } from "@/pages/AgentChatPage";
 import { SessionViewerPage } from "@/pages/SessionViewerPage";
 import { AnalyticsPage } from "@/pages/AnalyticsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { BillingPage } from "@/pages/BillingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
 
@@ -100,6 +101,14 @@ export default function App() {
               element={
                 <ProtectedRoute requireEmailVerification>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute requireEmailVerification>
+                  <BillingPage />
                 </ProtectedRoute>
               }
             />

@@ -1,10 +1,10 @@
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 
 export function SettingsPage() {
   return (
@@ -78,16 +78,12 @@ export function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="font-semibold mb-2">Current Plan</p>
-                  <p className="text-muted-foreground">Professional - $29/month</p>
-                </div>
-                <Separator />
-                <div>
-                  <p className="font-semibold mb-2">Usage This Month</p>
-                  <p className="text-muted-foreground">850 / 1,000 sessions</p>
-                </div>
-                <Button>Upgrade Plan</Button>
+                <p className="text-muted-foreground">
+                  For detailed billing management, usage tracking, invoices, and payment methods, visit the dedicated billing page.
+                </p>
+                <Link to="/billing">
+                  <Button>Go to Billing & Plans</Button>
+                </Link>
               </CardContent>
             </Card>
           </TabsContent>
