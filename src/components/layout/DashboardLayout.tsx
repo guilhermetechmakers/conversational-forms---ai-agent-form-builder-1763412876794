@@ -13,6 +13,7 @@ import {
   Webhook
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -40,7 +41,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <MessageSquare className="h-6 w-6 text-primary" />
             <span className="text-xl font-semibold">Conversational Forms</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <NotificationBell />
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
             </Button>

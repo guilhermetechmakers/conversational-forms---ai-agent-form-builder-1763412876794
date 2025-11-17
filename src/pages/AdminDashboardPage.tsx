@@ -5,6 +5,7 @@ import { UserManagementSection } from "@/components/admin/UserManagementSection"
 import { AgentOversightSection } from "@/components/admin/AgentOversightSection";
 import { SystemMetricsSection } from "@/components/admin/SystemMetricsSection";
 import { AuditLogsSection } from "@/components/admin/AuditLogsSection";
+import { AdminCriticalAlerts } from "@/components/notifications/AdminCriticalAlerts";
 
 export function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState("users");
@@ -22,10 +23,11 @@ export function AdminDashboardPage() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="agents">Agent Oversight</TabsTrigger>
             <TabsTrigger value="metrics">System Metrics</TabsTrigger>
+            <TabsTrigger value="alerts">Critical Alerts</TabsTrigger>
             <TabsTrigger value="audit">Audit Logs</TabsTrigger>
           </TabsList>
 
@@ -39,6 +41,10 @@ export function AdminDashboardPage() {
 
           <TabsContent value="metrics" className="mt-6">
             <SystemMetricsSection />
+          </TabsContent>
+
+          <TabsContent value="alerts" className="mt-6">
+            <AdminCriticalAlerts />
           </TabsContent>
 
           <TabsContent value="audit" className="mt-6">
