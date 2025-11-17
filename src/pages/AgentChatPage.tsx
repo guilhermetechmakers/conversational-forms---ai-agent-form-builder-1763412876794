@@ -11,7 +11,10 @@ import {
   Type,
   RotateCcw,
   FileText,
-  X
+  X,
+  Menu,
+  X as XIcon,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +23,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAgent, useSession, useCreateSession, useSendMessage, useCompleteSession, useRestartSession } from "@/hooks/useAgentChat";
+import { useSessionOrchestration } from "@/hooks/useSessionOrchestration";
+import { ValidationFeedbackSidebar } from "@/components/session/ValidationFeedbackSidebar";
+import { SessionManagementModal } from "@/components/session/SessionManagementModal";
+import { DataReviewDialog } from "@/components/session/DataReviewDialog";
+import { ErrorHandlingSheet } from "@/components/session/ErrorHandlingSheet";
+import { sessionApi } from "@/lib/api/session";
 import { toast } from "sonner";
 import type { SessionMessage } from "@/types/session";
 
@@ -39,6 +47,10 @@ export function AgentChatPage() {
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showSessionState, setShowSessionState] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showSessionManagement, setShowSessionManagement] = useState(false);
+  const [showErrorSheet, setShowErrorSheet] = useState(false);
+  const [currentError, setCurrentError] = useState<Error | null>(null);
+  const [showValidationSidebar, setShowValidationSidebar] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [accessibilitySettings, setAccessibilitySettings] = useState({
     fontSize: "normal" as "small" | "normal" | "large",
@@ -46,6 +58,7 @@ export function AgentChatPage() {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastErrorMessageRef = useRef<string | null>(null);
 
   // Fetch agent data
   const { data: agent, isLoading: agentLoading, error: agentError } = useAgent();
@@ -56,6 +69,27 @@ export function AgentChatPage() {
   const sendMessageMutation = useSendMessage();
   const completeSessionMutation = useCompleteSession();
   const restartSessionMutation = useRestartSession();
+
+  // Enhanced session orchestration with streaming
+  const { streamingState } = useSessionOrchestration({
+    sessionId,
+    enabled: !!sessionId && session?.status === "in_progress",
+    onComplete: () => {
+      toast.success("Session completed successfully!");
+      setTimeout(() => {
+        setShowSummaryModal(true);
+      }, 500);
+    },
+    onError: (error: Error) => {
+      setCurrentError(error);
+      setShowErrorSheet(true);
+    },
+  });
+
+  // Update typing state from streaming
+  useEffect(() => {
+    setIsTyping(streamingState.isTyping || streamingState.isStreaming);
+  }, [streamingState.isTyping, streamingState.isStreaming]);
 
   // Initialize session when agent is loaded
   useEffect(() => {
@@ -132,6 +166,12 @@ export function AgentChatPage() {
       }
     } catch (error) {
       console.error("Failed to send message:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message";
+      if (errorMessage !== lastErrorMessageRef.current) {
+        setCurrentError(error instanceof Error ? error : new Error(errorMessage));
+        setShowErrorSheet(true);
+        lastErrorMessageRef.current = errorMessage;
+      }
     } finally {
       setIsTyping(false);
     }
@@ -173,10 +213,49 @@ export function AgentChatPage() {
       const newSession = await restartSessionMutation.mutateAsync(sessionId);
       setSessionId(newSession.id);
       setShowSummaryModal(false);
+      setShowSessionManagement(false);
       toast.success("Session restarted");
     } catch (error) {
       console.error("Failed to restart session:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to restart session";
+      toast.error(errorMessage);
     }
+  };
+
+  const handleDeleteSession = async (sessionIdToDelete: string) => {
+    try {
+      await sessionApi.delete(sessionIdToDelete);
+      toast.success("Session deleted");
+      if (sessionIdToDelete === sessionId) {
+        setSessionId(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+      toast.error("Failed to delete session");
+    }
+  };
+
+  const handleViewSession = (sessionIdToView: string) => {
+    navigate(`/sessions/${sessionIdToView}`);
+  };
+
+  const handleRetry = () => {
+    setShowErrorSheet(false);
+    setCurrentError(null);
+    lastErrorMessageRef.current = null;
+    // Retry last action would be handled by the specific action
+  };
+
+  const handleManualInput = () => {
+    setShowErrorSheet(false);
+    // Show manual form input (would need to be implemented)
+    toast.info("Manual input form coming soon");
+  };
+
+  const handleEscalate = () => {
+    setShowErrorSheet(false);
+    // Navigate to support or open support chat
+    toast.info("Contacting support...");
   };
 
   if (agentLoading || sessionLoading) {
@@ -261,6 +340,24 @@ export function AgentChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSessionManagement(true)}
+                className="gap-1.5"
+              >
+                <History className="h-4 w-4" />
+                <span className="hidden sm:inline">Sessions</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowValidationSidebar(!showValidationSidebar)}
+                className="gap-1.5"
+              >
+                <Menu className="h-4 w-4" />
+                <span className="hidden sm:inline">Fields</span>
+              </Button>
               <Badge variant="outline" className="gap-1.5">
                 <CheckCircle2 className="h-3 w-3" />
                 Secure
@@ -291,9 +388,33 @@ export function AgentChatPage() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 relative">
+        {/* Validation Feedback Sidebar */}
+        {showValidationSidebar && agent && session && (
+          <div className="absolute right-0 top-0 bottom-0 w-80 border-l border-border bg-background z-20 hidden lg:block">
+            <div className="h-full p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold">Field Validation</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setShowValidationSidebar(false)}
+                >
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              <ValidationFeedbackSidebar
+                fields={agent.fields}
+                parsedFields={session.parsed_fields}
+                className="h-[calc(100%-3rem)]"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Messages Stream */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className={cn("flex-1", showValidationSidebar && "lg:pr-80")}>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-4xl">
             <div className="space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
               {messages.length === 0 && (
@@ -527,39 +648,39 @@ export function AgentChatPage() {
         </div>
       </div>
 
-      {/* Session Summary Modal */}
-      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Session Summary</DialogTitle>
-            <DialogDescription>
-              Review the information collected during this session.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {session?.parsed_fields.map((field) => (
-              <div key={field.field_id} className="p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm font-medium mb-1">{field.field_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {Array.isArray(field.value)
-                    ? field.value.join(", ")
-                    : String(field.value)}
-                </p>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSummaryModal(false)}>
-              Close
-            </Button>
-            {!isComplete && (
-              <Button onClick={handleComplete} disabled={completeSessionMutation.isPending}>
-                Complete Session
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Data Review Dialog */}
+      {agent && session && (
+        <DataReviewDialog
+          open={showSummaryModal}
+          onOpenChange={setShowSummaryModal}
+          fields={agent.fields}
+          parsedFields={session.parsed_fields}
+          onConfirm={handleComplete}
+          isLoading={completeSessionMutation.isPending}
+        />
+      )}
+
+      {/* Session Management Modal */}
+      <SessionManagementModal
+        open={showSessionManagement}
+        onOpenChange={setShowSessionManagement}
+        sessions={session ? [session] : []}
+        onRestart={handleRestart}
+        onDelete={handleDeleteSession}
+        onView={handleViewSession}
+        isLoading={sessionLoading}
+      />
+
+      {/* Error Handling Sheet */}
+      <ErrorHandlingSheet
+        open={showErrorSheet}
+        onOpenChange={setShowErrorSheet}
+        error={currentError}
+        onRetry={handleRetry}
+        onManualInput={handleManualInput}
+        onEscalate={handleEscalate}
+        fallbackMessage={currentError?.message || "An unexpected error occurred"}
+      />
     </div>
   );
 }
