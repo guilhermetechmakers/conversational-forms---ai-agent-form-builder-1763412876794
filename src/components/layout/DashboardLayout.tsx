@@ -9,7 +9,8 @@ import {
   LogOut,
   User,
   HelpCircle,
-  BookOpen
+  BookOpen,
+  Webhook
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: "/agents", label: "Agents", icon: MessageSquare },
     { path: "/knowledge", label: "Knowledge", icon: BookOpen },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
+    { path: "/webhooks", label: "Webhooks", icon: Webhook },
     { path: "/help", label: "Help & Docs", icon: HelpCircle },
     { path: "/settings", label: "Settings", icon: Settings },
   ];

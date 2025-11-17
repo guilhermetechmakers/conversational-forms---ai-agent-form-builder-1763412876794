@@ -23,6 +23,7 @@ import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
 import { PrivacyTermsPage } from "@/pages/PrivacyTermsPage";
 import { HelpDocsPage } from "@/pages/HelpDocsPage";
 import { KnowledgeAttachmentsPage } from "@/pages/KnowledgeAttachmentsPage";
+import { WebhooksPage } from "@/pages/WebhooksPage";
 
 // React Query client with optimal defaults
 const queryClient = new QueryClient({
@@ -148,6 +149,14 @@ export default function App() {
                 element={
                   <ProtectedRoute requireEmailVerification>
                     <KnowledgeAttachmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/webhooks"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <WebhooksPage />
                   </ProtectedRoute>
                 }
               />

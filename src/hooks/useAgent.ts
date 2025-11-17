@@ -75,3 +75,10 @@ export function useUnpublishAgent(agentId: string) {
     },
   });
 }
+
+export function useAgents() {
+  return useQuery({
+    queryKey: ["agents"],
+    queryFn: () => api.get<Agent[]>("/agents"),
+  });
+}
