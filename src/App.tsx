@@ -4,8 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LandingPage } from "@/pages/LandingPage";
-import { LoginPage } from "@/pages/LoginPage";
-import { SignupPage } from "@/pages/SignupPage";
+import { AuthPage } from "@/pages/AuthPage";
 import { EmailVerificationPage } from "@/pages/EmailVerificationPage";
 import { PasswordResetRequestPage } from "@/pages/PasswordResetRequestPage";
 import { PasswordResetPage } from "@/pages/PasswordResetPage";
@@ -39,8 +38,9 @@ export default function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/signup" element={<AuthPage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/verify-email" element={<EmailVerificationPage />} />
             <Route path="/forgot-password" element={<PasswordResetRequestPage />} />
             <Route path="/reset-password" element={<PasswordResetPage />} />
