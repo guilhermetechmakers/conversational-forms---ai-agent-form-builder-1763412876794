@@ -40,6 +40,8 @@ export interface AgentPersona {
   tagline?: string;
   tone?: 'professional' | 'friendly' | 'casual' | 'formal';
   instructions?: string;
+  greeting_template?: string;
+  fallback_responses?: string[];
 }
 
 export interface AgentAppearance {
@@ -47,6 +49,8 @@ export interface AgentAppearance {
   secondary_color?: string;
   font_family?: string;
   logo_url?: string;
+  header_text?: string;
+  cta_text?: string;
 }
 
 export interface Agent {

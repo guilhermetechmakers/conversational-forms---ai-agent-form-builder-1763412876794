@@ -1,54 +1,264 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Save, Eye, Trash2 } from "lucide-react";
-import type { AgentField, FieldType } from "@/types/agent";
+import { Save, Eye, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import { useAgent, useCreateAgent, useUpdateAgent, usePublishAgent, useUnpublishAgent } from "@/hooks/useAgent";
+import { FieldPalette } from "@/components/agent-builder/FieldPalette";
+import { VisualFlowEditor } from "@/components/agent-builder/VisualFlowEditor";
+import { FieldEditor } from "@/components/agent-builder/FieldEditor";
+import { PersonaSettings } from "@/components/agent-builder/PersonaSettings";
+import { KnowledgeAttachments } from "@/components/agent-builder/KnowledgeAttachments";
+import { AppearanceSettings } from "@/components/agent-builder/AppearanceSettings";
+import { PublishControls } from "@/components/agent-builder/PublishControls";
+import { PreviewModal } from "@/components/agent-builder/PreviewModal";
+import type { AgentField, AgentPersona, AgentAppearance, FieldType } from "@/types/agent";
+import type { KnowledgeAttachment } from "@/types/knowledge";
+
+const defaultPersona: AgentPersona = {
+  name: "Assistant",
+  tagline: "I'm here to help you complete this form",
+  tone: "friendly",
+  instructions: "You are a helpful assistant that collects information through conversation. Be polite, clear, and guide users through the form fields one at a time.",
+};
+
+const defaultAppearance: AgentAppearance = {
+  primary_color: "#2563EB",
+  secondary_color: "#10B981",
+  font_family: "Inter",
+};
 
 export function AgentBuilderPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const isEditing = !!id;
+
+  const { data: existingAgent, isLoading } = useAgent(id);
+  const createAgent = useCreateAgent();
+  const updateAgent = useUpdateAgent(id || "");
+  const publishAgent = usePublishAgent(id || "");
+  const unpublishAgent = useUnpublishAgent(id || "");
+
+  // State
   const [agentName, setAgentName] = useState("");
   const [agentSlug, setAgentSlug] = useState("");
   const [fields, setFields] = useState<AgentField[]>([]);
   const [selectedField, setSelectedField] = useState<AgentField | null>(null);
+  const [persona, setPersona] = useState<AgentPersona>(defaultPersona);
+  const [appearance, setAppearance] = useState<AgentAppearance>(defaultAppearance);
+  const [attachments, setAttachments] = useState<KnowledgeAttachment[]>([]);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [enableCaptcha, setEnableCaptcha] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const fieldTypes: { value: FieldType; label: string }[] = [
-    { value: 'text', label: 'Text' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Phone' },
-    { value: 'number', label: 'Number' },
-    { value: 'select', label: 'Select' },
-    { value: 'multi-select', label: 'Multi-Select' },
-    { value: 'checkbox', label: 'Checkbox' },
-    { value: 'date', label: 'Date' },
-    { value: 'file', label: 'File Upload' },
-  ];
+  // Load existing agent data
+  useEffect(() => {
+    if (existingAgent) {
+      setAgentName(existingAgent.name);
+      setAgentSlug(existingAgent.slug);
+      setFields(existingAgent.fields || []);
+      setPersona(existingAgent.persona || defaultPersona);
+      setAppearance(existingAgent.appearance || defaultAppearance);
+      setLastSaved(new Date(existingAgent.updated_at));
+    }
+  }, [existingAgent]);
 
-  const addField = () => {
+  // Autosave functionality
+  const autosave = useCallback(async () => {
+    if (!agentName || !agentSlug || fields.length === 0) {
+      return;
+    }
+
+    try {
+      const agentData = {
+        name: agentName,
+        slug: agentSlug,
+        fields,
+        persona,
+        appearance,
+        knowledge_refs: attachments.map((a) => a.id),
+      };
+
+      if (isEditing && id) {
+        await updateAgent.mutateAsync(agentData);
+      } else {
+        // For new agents, we'll save on explicit save action
+        return;
+      }
+
+      setLastSaved(new Date());
+    } catch (error) {
+      // Silently fail for autosave
+      console.error("Autosave failed:", error);
+    }
+  }, [agentName, agentSlug, fields, persona, appearance, attachments, isEditing, id, updateAgent]);
+
+  // Autosave debounced
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isEditing) {
+        autosave();
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [agentName, agentSlug, fields, persona, appearance, isEditing, autosave]);
+
+  const handleAddField = (type: FieldType) => {
     const newField: AgentField = {
       id: `field-${Date.now()}`,
       name: `field_${fields.length + 1}`,
-      type: 'text',
-      label: 'New Field',
+      type,
+      label: `New ${type} Field`,
+      placeholder: `Enter ${type}`,
       required: false,
     };
-    setFields([...fields, newField]);
+    const updatedFields = [...fields, newField];
+    setFields(updatedFields);
     setSelectedField(newField);
   };
 
-  const updateField = (updatedField: AgentField) => {
-    setFields(fields.map(f => f.id === updatedField.id ? updatedField : f));
+  const handleUpdateField = (updatedField: AgentField) => {
+    const updatedFields = fields.map((f) =>
+      f.id === updatedField.id ? updatedField : f
+    );
+    setFields(updatedFields);
     setSelectedField(updatedField);
+    toast.success("Field updated");
   };
 
-  const deleteField = (fieldId: string) => {
-    setFields(fields.filter(f => f.id !== fieldId));
+  const handleDeleteField = (fieldId: string) => {
+    const updatedFields = fields.filter((f) => f.id !== fieldId);
+    setFields(updatedFields);
     if (selectedField?.id === fieldId) {
       setSelectedField(null);
     }
+    toast.success("Field deleted");
+  };
+
+  const handleSave = async () => {
+    if (!agentName.trim()) {
+      toast.error("Agent name is required");
+      return;
+    }
+
+    if (!agentSlug.trim()) {
+      toast.error("Slug is required");
+      return;
+    }
+
+    if (fields.length === 0) {
+      toast.error("At least one field is required");
+      return;
+    }
+
+    try {
+      const agentData = {
+        name: agentName,
+        slug: agentSlug,
+        fields,
+        persona,
+        appearance,
+        knowledge_refs: attachments.map((a) => a.id),
+      };
+
+      if (isEditing && id) {
+        await updateAgent.mutateAsync(agentData);
+        toast.success("Agent saved successfully");
+      } else {
+        const newAgent = await createAgent.mutateAsync(agentData);
+        navigate(`/agents/${newAgent.id}/edit`);
+        toast.success("Agent created successfully");
+      }
+
+      setLastSaved(new Date());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save agent");
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!id) {
+      toast.error("Please save the agent first");
+      return;
+    }
+
+    try {
+      await publishAgent.mutateAsync();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      await unpublishAgent.mutateAsync();
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleUploadAttachment = async (file: File) => {
+    // TODO: Implement actual file upload
+    const newAttachment: KnowledgeAttachment = {
+      id: `attachment-${Date.now()}`,
+      workspace_id: "workspace-1",
+      filename: file.name,
+      file_type: file.type,
+      file_size: file.size,
+      file_url: URL.createObjectURL(file),
+      status: "pending",
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setAttachments([...attachments, newAttachment]);
+    toast.success("File uploaded successfully");
+  };
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setAttachments(attachments.filter((a) => a.id !== attachmentId));
+    toast.success("Attachment deleted");
+  };
+
+  const handleReindexAttachment = (attachmentId: string) => {
+    setAttachments(
+      attachments.map((a) =>
+        a.id === attachmentId ? { ...a, status: "processing" as const } : a
+      )
+    );
+    toast.success("Re-indexing started");
+    // TODO: Implement actual re-indexing
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading agent...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const agentForPreview: any = {
+    id: id || "preview",
+    name: agentName || "Preview Agent",
+    slug: agentSlug || "preview",
+    fields,
+    persona,
+    appearance,
+    status: existingAgent?.status || "draft",
   };
 
   return (
@@ -56,101 +266,81 @@ export function AgentBuilderPage() {
       <div className="space-y-6 animate-fade-in-up">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Agent Builder</h1>
-            <p className="text-muted-foreground mt-1">
-              Create and configure your conversational form agent
-            </p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                {isEditing ? "Edit Agent" : "Create Agent"}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {isEditing
+                  ? "Modify your conversational form agent"
+                  : "Build a new conversational form agent"}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
+          <div className="flex items-center gap-2">
+            {lastSaved && (
+              <span className="text-xs text-muted-foreground">
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <Eye className="mr-2 h-4 w-4" />
               Preview
             </Button>
-            <Button>
+            <Button onClick={handleSave} disabled={createAgent.isPending || updateAgent.isPending}>
               <Save className="mr-2 h-4 w-4" />
-              Save
+              {createAgent.isPending || updateAgent.isPending ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Sidebar - Fields List */}
+        {/* Three Column Layout */}
+        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-200px)]">
+          {/* Left Sidebar - Field Palette */}
           <div className="col-span-3">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Fields</CardTitle>
-                  <Button size="sm" onClick={addField}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {fields.map((field) => (
-                    <div
-                      key={field.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedField?.id === field.id
-                          ? 'bg-primary/10 border-primary'
-                          : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => setSelectedField(field)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{field.label}</p>
-                          <p className="text-xs text-muted-foreground">{field.type}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteField(field.id);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      {field.required && (
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          Required
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
-                  {fields.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No fields yet. Click + to add one.
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <FieldPalette onAddField={handleAddField} />
           </div>
 
-          {/* Center - Builder Canvas */}
-          <div className="col-span-6">
-            <Tabs defaultValue="agent" className="space-y-4">
-              <TabsList>
+          {/* Center - Visual Flow Editor & Settings */}
+          <div className="col-span-6 flex flex-col">
+            <Tabs defaultValue="flow" className="flex-1 flex flex-col">
+              <TabsList className="mb-4">
+                <TabsTrigger value="flow">Flow</TabsTrigger>
                 <TabsTrigger value="agent">Agent Settings</TabsTrigger>
                 <TabsTrigger value="persona">Persona</TabsTrigger>
-                <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
+                <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="publish">Publish</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="agent" className="space-y-4">
+              <TabsContent value="flow" className="flex-1 flex flex-col mt-0">
+                <VisualFlowEditor
+                  fields={fields}
+                  selectedField={selectedField}
+                  onSelectField={setSelectedField}
+                  onDeleteField={handleDeleteField}
+                />
+              </TabsContent>
+
+              <TabsContent value="agent" className="flex-1 overflow-y-auto mt-0">
                 <Card>
                   <CardHeader>
                     <CardTitle>Basic Information</CardTitle>
+                    <CardDescription>
+                      Configure the basic settings for your agent
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="agentName">Agent Name</Label>
+                      <Label htmlFor="agentName">Agent Name *</Label>
                       <Input
                         id="agentName"
                         value={agentName}
@@ -159,169 +349,76 @@ export function AgentBuilderPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="agentSlug">Slug</Label>
+                      <Label htmlFor="agentSlug">Slug *</Label>
                       <Input
                         id="agentSlug"
                         value={agentSlug}
-                        onChange={(e) => setAgentSlug(e.target.value)}
+                        onChange={(e) => setAgentSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
                         placeholder="my-contact-form"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Public URL: /a/workspace/{agentSlug || 'slug'}
+                        Public URL: /a/workspace/{agentSlug || "slug"}
                       </p>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="persona">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Persona Settings</CardTitle>
-                    <CardDescription>
-                      Configure your agent's personality and behavior
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Persona Name</Label>
-                      <Input placeholder="Assistant" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tagline</Label>
-                      <Input placeholder="I'm here to help you complete this form" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Instructions</Label>
-                      <textarea
-                        className="w-full min-h-[200px] p-3 border rounded-md"
-                        placeholder="You are a helpful assistant..."
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+              <TabsContent value="persona" className="flex-1 overflow-y-auto mt-0">
+                <PersonaSettings
+                  persona={persona}
+                  onUpdate={setPersona}
+                />
               </TabsContent>
 
-              <TabsContent value="appearance">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Appearance</CardTitle>
-                    <CardDescription>
-                      Customize the look and feel of your agent
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Primary Color</Label>
-                      <Input type="color" defaultValue="#2563EB" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Secondary Color</Label>
-                      <Input type="color" defaultValue="#10B981" />
-                    </div>
-                  </CardContent>
-                </Card>
+              <TabsContent value="knowledge" className="flex-1 overflow-y-auto mt-0">
+                <KnowledgeAttachments
+                  attachments={attachments}
+                  onUpload={handleUploadAttachment}
+                  onDelete={handleDeleteAttachment}
+                  onReindex={handleReindexAttachment}
+                />
               </TabsContent>
 
-              <TabsContent value="knowledge">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Knowledge Attachments</CardTitle>
-                    <CardDescription>
-                      Upload documents to provide context to your agent
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button variant="outline">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Upload Document
-                    </Button>
-                  </CardContent>
-                </Card>
+              <TabsContent value="appearance" className="flex-1 overflow-y-auto mt-0">
+                <AppearanceSettings
+                  appearance={appearance}
+                  onUpdate={setAppearance}
+                />
               </TabsContent>
 
-              <TabsContent value="publish">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Publish Settings</CardTitle>
-                    <CardDescription>
-                      Configure webhooks and publish your agent
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Webhook URL</Label>
-                      <Input placeholder="https://example.com/webhook" />
-                    </div>
-                    <Button>Publish Agent</Button>
-                  </CardContent>
-                </Card>
+              <TabsContent value="publish" className="flex-1 overflow-y-auto mt-0">
+                <PublishControls
+                  slug={agentSlug}
+                  status={existingAgent?.status || "draft"}
+                  webhookUrl={webhookUrl}
+                  enableCaptcha={enableCaptcha}
+                  onSlugChange={setAgentSlug}
+                  onPublish={handlePublish}
+                  onUnpublish={handleUnpublish}
+                  onWebhookChange={setWebhookUrl}
+                  onCaptchaToggle={setEnableCaptcha}
+                />
               </TabsContent>
             </Tabs>
           </div>
 
           {/* Right Sidebar - Field Properties */}
           <div className="col-span-3">
-            {selectedField ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Field Properties</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Field Label</Label>
-                    <Input
-                      value={selectedField.label}
-                      onChange={(e) =>
-                        updateField({ ...selectedField, label: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Field Type</Label>
-                    <select
-                      className="w-full h-9 px-3 border rounded-md"
-                      value={selectedField.type}
-                      onChange={(e) =>
-                        updateField({
-                          ...selectedField,
-                          type: e.target.value as FieldType,
-                        })
-                      }
-                    >
-                      {fieldTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="required"
-                      checked={selectedField.required}
-                      onChange={(e) =>
-                        updateField({
-                          ...selectedField,
-                          required: e.target.checked,
-                        })
-                      }
-                    />
-                    <Label htmlFor="required">Required field</Label>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  Select a field to edit its properties
-                </CardContent>
-              </Card>
-            )}
+            <FieldEditor
+              field={selectedField}
+              onUpdate={handleUpdateField}
+              onDelete={handleDeleteField}
+            />
           </div>
         </div>
       </div>
+
+      <PreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        agent={agentForPreview}
+      />
     </DashboardLayout>
   );
 }

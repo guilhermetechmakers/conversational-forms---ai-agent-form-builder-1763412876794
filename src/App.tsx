@@ -33,8 +33,8 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
@@ -114,9 +114,9 @@ export default function App() {
             />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </BrowserRouter>
-        <Toaster />
-      </AuthProvider>
+          <Toaster />
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
