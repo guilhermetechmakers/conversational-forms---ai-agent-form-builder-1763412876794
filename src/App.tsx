@@ -16,6 +16,7 @@ import { SessionViewerPage } from "@/pages/SessionViewerPage";
 import { AnalyticsPage } from "@/pages/AnalyticsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { BillingPage } from "@/pages/BillingPage";
+import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ServerErrorPage } from "@/pages/ServerErrorPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
@@ -121,6 +122,14 @@ export default function App() {
                 element={
                   <ProtectedRoute requireEmailVerification>
                     <BillingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireEmailVerification requireAdmin>
+                    <AdminDashboardPage />
                   </ProtectedRoute>
                 }
               />

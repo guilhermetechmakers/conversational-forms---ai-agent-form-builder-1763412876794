@@ -5,11 +5,13 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireEmailVerification?: boolean;
+  requireAdmin?: boolean;
 }
 
 export function ProtectedRoute({ 
   children, 
-  requireEmailVerification = false 
+  requireEmailVerification = false,
+  requireAdmin = false,
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -33,6 +35,10 @@ export function ProtectedRoute({
 
   if (requireEmailVerification && user && !user.email_verified) {
     return <Navigate to="/verify-email" replace />;
+  }
+
+  if (requireAdmin && user && user.role !== 'admin' && user.role !== 'owner') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
