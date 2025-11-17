@@ -21,6 +21,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ServerErrorPage } from "@/pages/ServerErrorPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
 import { PrivacyTermsPage } from "@/pages/PrivacyTermsPage";
+import { HelpDocsPage } from "@/pages/HelpDocsPage";
 
 // React Query client with optimal defaults
 const queryClient = new QueryClient({
@@ -122,6 +123,22 @@ export default function App() {
                 element={
                   <ProtectedRoute requireEmailVerification>
                     <BillingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/help"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <HelpDocsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/docs"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <HelpDocsPage />
                   </ProtectedRoute>
                 }
               />

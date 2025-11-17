@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  User
+  User,
+  HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/agents", label: "Agents", icon: MessageSquare },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
+    { path: "/help", label: "Help & Docs", icon: HelpCircle },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
