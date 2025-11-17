@@ -51,3 +51,45 @@ export interface SessionExport {
   created_at: string;
   completed_at?: string;
 }
+
+export interface SessionNote {
+  id: string;
+  session_id: string;
+  content: string;
+  author_id: string;
+  author_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionTag {
+  id: string;
+  name: string;
+  color?: string;
+}
+
+export interface SessionActivity {
+  id: string;
+  session_id: string;
+  action_type: 'webhook_sent' | 'webhook_failed' | 'export_csv' | 'export_json' | 'crm_contact_created' | 'note_added' | 'tag_added' | 'session_deleted';
+  status: 'success' | 'failed' | 'pending';
+  details?: Record<string, unknown>;
+  created_at: string;
+}
+
+import type { WebhookDelivery } from "./webhook";
+
+export interface SessionWithDetails extends Session {
+  agent?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  notes?: SessionNote[];
+  tags?: SessionTag[];
+  activities?: SessionActivity[];
+  webhook_deliveries?: WebhookDelivery[];
+  assignee_id?: string;
+  assignee_name?: string;
+  lead_score?: number;
+}
