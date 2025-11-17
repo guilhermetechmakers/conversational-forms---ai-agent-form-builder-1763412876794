@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LandingPage } from "@/pages/LandingPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { EmailVerificationPage } from "@/pages/EmailVerificationPage";
@@ -16,6 +17,7 @@ import { AnalyticsPage } from "@/pages/AnalyticsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { BillingPage } from "@/pages/BillingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { ServerErrorPage } from "@/pages/ServerErrorPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
 import { PrivacyTermsPage } from "@/pages/PrivacyTermsPage";
 
@@ -33,95 +35,101 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/signup" element={<AuthPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/verify-email" element={<EmailVerificationPage />} />
-            <Route path="/forgot-password" element={<PasswordResetRequestPage />} />
-            <Route path="/reset-password" element={<PasswordResetPage />} />
-            <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage />} />
-            <Route path="/privacy-terms" element={<PrivacyTermsPage />} />
-            <Route path="/privacy" element={<PrivacyTermsPage />} />
-            <Route path="/terms" element={<PrivacyTermsPage />} />
-            <Route path="/cookies" element={<PrivacyTermsPage />} />
-            
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/agents"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/agents/new"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <AgentBuilderPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/agents/:id/edit"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <AgentBuilderPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/a/:workspace/:slug" element={<AgentChatPage />} />
-            <Route
-              path="/sessions/:id"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <SessionViewerPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <AnalyticsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/billing"
-              element={
-                <ProtectedRoute requireEmailVerification>
-                  <BillingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-          <Toaster />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/signup" element={<AuthPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/verify-email" element={<EmailVerificationPage />} />
+              <Route path="/forgot-password" element={<PasswordResetRequestPage />} />
+              <Route path="/reset-password" element={<PasswordResetPage />} />
+              <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage />} />
+              <Route path="/privacy-terms" element={<PrivacyTermsPage />} />
+              <Route path="/privacy" element={<PrivacyTermsPage />} />
+              <Route path="/terms" element={<PrivacyTermsPage />} />
+              <Route path="/cookies" element={<PrivacyTermsPage />} />
+              
+              {/* Error pages */}
+              <Route path="/500" element={<ServerErrorPage />} />
+              <Route path="/server-error" element={<ServerErrorPage />} />
+              
+              {/* Protected routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents/new"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <AgentBuilderPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents/:id/edit"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <AgentBuilderPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/a/:workspace/:slug" element={<AgentChatPage />} />
+              <Route
+                path="/sessions/:id"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <SessionViewerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute requireEmailVerification>
+                    <BillingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+            <Toaster />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
